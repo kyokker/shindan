@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アニメおすすめ診断</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #1d1f23;
+      --muted: #6b7280;
+      --accent: #ffb703;
+      --accent-strong: #fb8500;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px 48px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 12px 16px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .ad-space {
+      border: 2px dashed #cbd5f5;
+      border-radius: var(--radius);
+      padding: 18px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .question-title {
+      font-weight: 700;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+    }
+
+    .option-list {
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .option-button {
+      background: #f1f5ff;
+      border: none;
+      padding: 14px 16px;
+      border-radius: 14px;
+      text-align: left;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .option-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+    }
+
+    .pill {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+
+    .result-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .result-anime {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent-strong);
+      margin-bottom: 10px;
+    }
+
+    .result-comment {
+      line-height: 1.6;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    .share-box {
+      background: #fff7ed;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #9a3412;
+      margin-bottom: 16px;
+      word-break: break-all;
+    }
+
+    .reset-button {
+      background: var(--accent);
+      border: none;
+      color: #1f2937;
+      font-weight: 700;
+      padding: 14px;
+      width: 100%;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 16px 12px 32px;
+      }
+
+      header h1 {
+        font-size: 1.4rem;
+      }
+
+      .card {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>アニメおすすめ診断</h1>
+      <p>5つの質問で、今のあなたにぴったりの作品を提案します！</p>
+    </header>
+
+    <div class="ad-space">ここに広告を設置できます</div>
+
+    <section id="intro" class="card">
+      <div class="pill">はじめに</div>
+      <p class="question-title">あなたのアニメ経験は？</p>
+      <ul class="option-list">
+        <li><button class="option-button" data-level="beginner">初心者（あまり観たことがない）</button></li>
+        <li><button class="option-button" data-level="light">ライト層〜中間（そこそこ観ている）</button></li>
+      </ul>
+    </section>
+
+    <section id="quiz" class="card hidden">
+      <div class="pill" id="progress">質問 1 / 5</div>
+      <p class="question-title" id="question-text"></p>
+      <ul class="option-list" id="options"></ul>
+    </section>
+
+    <section id="result" class="card hidden">
+      <div class="pill">診断結果</div>
+      <p class="result-title" id="result-type"></p>
+      <p class="result-anime" id="result-anime"></p>
+      <p class="result-comment" id="result-comment"></p>
+      <div class="share-box" id="share-text"></div>
+      <button class="reset-button" id="reset">もう一度診断する</button>
+    </section>
+
+    <div class="ad-space">ここに広告を設置できます</div>
+  </div>
+
+  <script>
+    // =========================
+    // ここから編集しやすいデータ
+    // =========================
+    const questions = [
+      {
+        text: "Q1. アニメを観るときの気分は？",
+        options: [
+          { label: "A. 元気になりたい", type: "yellow" },
+          { label: "B. ハラハラしたい", type: "blue" },
+          { label: "C. 気楽に観たい", type: "green" },
+          { label: "D. 物語に浸りたい", type: "purple" }
+        ]
+      },
+      {
+        text: "Q2. 1話目で一番大事なのは？",
+        options: [
+          { label: "A. テンポと勢い", type: "yellow" },
+          { label: "B. 世界観の緊張感", type: "blue" },
+          { label: "C. キャラの雰囲気", type: "green" },
+          { label: "D. ストーリーの引き", type: "purple" }
+        ]
+      },
+      {
+        text: "Q3. 観終わったあと、どうなりたい？",
+        options: [
+          { label: "A. 前向きな気持ち", type: "yellow" },
+          { label: "B. ドキドキが残ってほしい", type: "blue" },
+          { label: "C. ほっこりしたい", type: "green" },
+          { label: "D. 余韻に浸りたい", type: "purple" }
+        ]
+      },
+      {
+        text: "Q4. アニメのテンポ感は？",
+        options: [
+          { label: "A. サクサク進むのがいい", type: "yellow" },
+          { label: "B. 緊張感が続く方がいい", type: "blue" },
+          { label: "C. ゆったりでOK", type: "green" },
+          { label: "D. じっくり描いてほしい", type: "purple" }
+        ]
+      },
+      {
+        text: "Q5. 今のあなたの気分に一番近いのは？",
+        options: [
+          { label: "A. スカッとしたい", type: "yellow" },
+          { label: "B. 刺激がほしい", type: "blue" },
+          { label: "C. 癒されたい", type: "green" },
+          { label: "D. 感動したい", type: "purple" }
+        ]
+      }
+    ];
+
+    const typeLabels = {
+      yellow: "🟡 スカッと爽快タイプ",
+      blue: "🔵 ドキドキ・ハラハラタイプ",
+      green: "🟢 まったり癒しタイプ",
+      purple: "🟣 じっくり感動タイプ"
+    };
+
+    const animeList = {
+      beginner: {
+        yellow: ["ワンパンマン", "僕のヒーローアカデミア", "SPY×FAMILY", "ハイキュー!!"],
+        blue: ["進撃の巨人", "DEATH NOTE", "東京卍リベンジャーズ", "鬼滅の刃"],
+        green: ["ゆるキャン△", "夏目友人帳", "ひだまりスケッチ", "あの日見た花の名前を僕達はまだ知らない。"],
+        purple: ["ヴァイオレット・エヴァーガーデン", "四月は君の嘘", "86―エイティシックス―", "フルーツバスケット"]
+      },
+      light: {
+        yellow: ["モブサイコ100", "GREAT PRETENDER", "SK∞ エスケーエイト", "ワールドトリガー"],
+        blue: ["PSYCHO-PASS", "約束のネバーランド", "BACCANO!", "Steins;Gate"],
+        green: ["甘々と稲妻", "宇宙よりも遠い場所", "日常", "ARIA The ANIMATION"],
+        purple: ["昭和元禄落語心中", "CLANNAD AFTER STORY", "メイドインアビス", "プラネテス"]
+      }
+    };
+
+    const comments = {
+      yellow: [
+        "あなたは🟡スカッと爽快タイプ。{title}はテンポ良く熱くなれるので、観たあと前向きな気分になれます！",
+        "あなたは🟡スカッと爽快タイプ。{title}の勢いある展開が、今のあなたにピッタリです。",
+        "あなたは🟡スカッと爽快タイプ。{title}は爽快感が強く、気分転換におすすめです！",
+        "あなたは🟡スカッと爽快タイプ。{title}のパワフルさが元気をくれます。",
+        "あなたは🟡スカッと爽快タイプ。{title}はスカッとしたい気分にぴったりの1本です。"
+      ],
+      blue: [
+        "あなたは🔵ドキドキ・ハラハラタイプ。{title}の緊張感が刺激を求めるあなたに刺さります！",
+        "あなたは🔵ドキドキ・ハラハラタイプ。{title}の予想外な展開でドキドキが止まりません。",
+        "あなたは🔵ドキドキ・ハラハラタイプ。{title}はスリルを楽しみたい人におすすめです。",
+        "あなたは🔵ドキドキ・ハラハラタイプ。{title}の緊迫感が今の気分に合います。",
+        "あなたは🔵ドキドキ・ハラハラタイプ。{title}はハラハラ感が続くので満足度高めです。"
+      ],
+      green: [
+        "あなたは🟢まったり癒しタイプ。{title}は優しい空気感で心が落ち着きます。",
+        "あなたは🟢まったり癒しタイプ。{title}のほっこりした雰囲気が癒しに最適です。",
+        "あなたは🟢まったり癒しタイプ。{title}はゆったり観られてリラックスできます。",
+        "あなたは🟢まったり癒しタイプ。{title}の穏やかな時間が今のあなたにぴったり。",
+        "あなたは🟢まったり癒しタイプ。{title}でやさしい気持ちになれます。"
+      ],
+      purple: [
+        "あなたは🟣じっくり感動タイプ。{title}は深い物語で心に残るはずです。",
+        "あなたは🟣じっくり感動タイプ。{title}の余韻ある展開が感動を届けます。",
+        "あなたは🟣じっくり感動タイプ。{title}は物語に浸りたい人におすすめです。",
+        "あなたは🟣じっくり感動タイプ。{title}はじっくり見たい気分に合います。",
+        "あなたは🟣じっくり感動タイプ。{title}の丁寧な描写に心が動きます。"
+      ]
+    };
+
+    // =========================
+    // ここから診断ロジック
+    // =========================
+    const introSection = document.getElementById("intro");
+    const quizSection = document.getElementById("quiz");
+    const resultSection = document.getElementById("result");
+    const questionText = document.getElementById("question-text");
+    const optionsList = document.getElementById("options");
+    const progress = document.getElementById("progress");
+    const resultType = document.getElementById("result-type");
+    const resultAnime = document.getElementById("result-anime");
+    const resultComment = document.getElementById("result-comment");
+    const shareText = document.getElementById("share-text");
+    const resetButton = document.getElementById("reset");
+
+    let currentQuestion = 0;
+    let experienceLevel = "beginner";
+    let scores = { yellow: 0, blue: 0, green: 0, purple: 0 };
+
+    introSection.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      experienceLevel = button.dataset.level;
+      introSection.classList.add("hidden");
+      quizSection.classList.remove("hidden");
+      renderQuestion();
+    });
+
+    function renderQuestion() {
+      const question = questions[currentQuestion];
+      questionText.textContent = question.text;
+      progress.textContent = `質問 ${currentQuestion + 1} / ${questions.length}`;
+      optionsList.innerHTML = "";
+
+      question.options.forEach((option) => {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = "option-button";
+        button.textContent = option.label;
+        button.addEventListener("click", () => handleAnswer(option.type));
+        li.appendChild(button);
+        optionsList.appendChild(li);
+      });
+    }
+
+    function handleAnswer(type) {
+      scores[type] += 1;
+      currentQuestion += 1;
+
+      if (currentQuestion < questions.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      quizSection.classList.add("hidden");
+      resultSection.classList.remove("hidden");
+
+      const maxScore = Math.max(...Object.values(scores));
+      const topTypes = Object.keys(scores).filter((key) => scores[key] === maxScore);
+      const finalType = topTypes[Math.floor(Math.random() * topTypes.length)];
+      const animeCandidates = animeList[experienceLevel][finalType];
+      const chosenAnime = animeCandidates[Math.floor(Math.random() * animeCandidates.length)];
+      const commentCandidates = comments[finalType];
+      const chosenComment = commentCandidates[Math.floor(Math.random() * commentCandidates.length)];
+
+      resultType.textContent = typeLabels[finalType];
+      resultAnime.textContent = `おすすめ作品：${chosenAnime}`;
+      resultComment.textContent = chosenComment.replace("{title}", chosenAnime);
+      shareText.textContent = `#アニメおすすめ診断 ${typeLabels[finalType]}｜おすすめは「${chosenAnime}」でした！`;
+    }
+
+    resetButton.addEventListener("click", () => {
+      currentQuestion = 0;
+      scores = { yellow: 0, blue: 0, green: 0, purple: 0 };
+      quizSection.classList.add("hidden");
+      resultSection.classList.add("hidden");
+      introSection.classList.remove("hidden");
+    });
+  </script>
+</body>
+</html>
